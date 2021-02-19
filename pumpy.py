@@ -468,25 +468,25 @@ class Microliter(Pump):
             # Flow rate was sent, check it was set correctly
             self.write('RAT')
             resp = self.readall()
-            returned_flowrate = remove_crud(resp[2:8])
+            returned_flowrate = resp.split(' ')[0]
 
-            if returned_flowrate != flowrate:
+            if float(returned_flowrate) != float(flowrate):
                 logging.error('%s: set infuse flowrate (%s uL/min) does not match'
                               'flowrate returned by pump (%s uL/min)',
                               self.name, flowrate, returned_flowrate)
-            elif returned_flowrate == flowrate:
+            else:
                 self.flowrate = returned_flowrate
                 logging.info('%s: infuse flow rate set to %s uL/min', self.name,
                               self.flowrate)
             self.write('RATW')
             resp = self.readall()
-            returned_flowrate = remove_crud(resp[2:8])
+            returned_flowrate = resp.split(' ')[0]
 
-            if returned_flowrate != flowrate:
+            if float(returned_flowrate) != float(flowrate):
                 logging.error('%s: set withdraw flowrate (%s uL/min) does not match'
                               'flowrate returned by pump (%s uL/min)',
                               self.name, flowrate, returned_flowrate)
-            elif returned_flowrate == flowrate:
+            else:
                 self.flowrate = returned_flowrate
                 logging.info('%s: withdraw flow rate set to %s uL/min', self.name,
                               self.flowrate)

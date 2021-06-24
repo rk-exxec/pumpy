@@ -107,9 +107,9 @@ class Pump:
 
         # Pump only considers 2 d.p. - anymore are ignored
         if len(diameter) > 5:
-            if diameter[2] is '.': # e.g. 30.2222222
+            if diameter[2] == '.': # e.g. 30.2222222
                 diameter = diameter[0:5]
-            elif diameter[1] is '.': # e.g. 3.222222
+            elif diameter[1] == '.': # e.g. 3.222222
                 diameter = diameter[0:4]
 
             diameter = remove_crud(diameter)

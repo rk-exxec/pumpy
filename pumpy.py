@@ -414,10 +414,11 @@ class Microliter(Pump):
         :param diameter: the diameter fo the syringe in mm
 
         .. note:: 
-            Pump 11 syringe diameter range is 0.1-35 mm. 
+            syringe diameter range is 0.1-4.61 mm. 
             Note that the pump ignores precision greater than 2 decimal places. 
             If more d.p. are specificed the diameter will be truncated.
         """
+        diameter = round(diameter,3)
         if diameter > 4.61 or diameter < 0.1:
             raise PumpError('%s: diameter %s mm is out of range' % 
                             (self.name, diameter))
@@ -454,7 +455,7 @@ class Microliter(Pump):
 
         .. note:: 
             The pump will tell you if the specified flow rate is out of range.
-            This depends on the syringe diameter. See Pump 11 manual.
+            This depends on the syringe diameter.
 
         """
         flowrate = remove_crud(str(flowrate))

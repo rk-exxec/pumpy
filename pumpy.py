@@ -501,7 +501,7 @@ class Microliter(Pump):
         """Start infusing pump."""
         self.write('RUN')
         resp = self.readall()      
-        if resp[-1] != '>':
+        if not '>' in resp:
             raise PumpError(f"Pump did not start infuse!: {resp}")  
         logging.info('%s: infusing',self.name)
 
@@ -509,9 +509,8 @@ class Microliter(Pump):
         """Start withdrawing pump."""
         self.write('RUNW')
         resp = self.readall()
-        if resp[-1] != '<':
+        if not '<' in resp:
             raise PumpError(f"Pump did not start withdraw!: {resp}")
-
         logging.info('%s: withdrawing',self.name)
 
     def stop(self):
@@ -521,7 +520,6 @@ class Microliter(Pump):
         resp = self.readall()
         if not resp[-1] in ":*IWDT":
             raise PumpError(f"Pump did not stop: {resp}")
-
 
     def settargetvolume(self, targetvolume):
         """Set the target volume to infuse or withdraw (microlitres)."""
@@ -554,8 +552,7 @@ class Microliter(Pump):
         logging.info('%s: waiting until target reached',self.name)
 
         self.write('VOL')
-        resp1 = self.read(17)
-        print(resp1)
+        resp1 = self.readall()
 
         if not '<' in resp1 and not '>' in resp1:
             raise PumpError('%s: not infusing/withdrawing - infuse or '
@@ -564,7 +561,7 @@ class Microliter(Pump):
         while True:
             # Read once
             self.write('VOL')
-            resp1 = self.read(17)
+            resp1 = self.readall()
 
             if not '<' in resp1 and not '>' in resp1:
                 # pump has come to a halt

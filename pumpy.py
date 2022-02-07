@@ -541,8 +541,7 @@ class Microliter(Pump):
         resp = self.readall()
 
         # response should be CRLFXX:, CRLFXX>, CRLFXX< where XX is address
-        # Pump11 replies with leading zeros, e.g. 03, but PHD2000 misbehaves and 
-        # returns without and gives an extra CR. Use int() to deal with
+
         if resp[-1] in ":<>*IWDT" or "*" in resp:
             self.targetvolume = float(targetvolume)
             logging.info('%s: target volume set to %s uL', self.name,
@@ -554,20 +553,21 @@ class Microliter(Pump):
         """Wait until the pump has reached its target volume."""
         logging.info('%s: waiting until target reached',self.name)
 
-        self.write(self.address + 'VOL\r')
+        self.write('VOL')
         resp1 = self.read(17)
+        print(resp1)
 
-        if resp1[-1] in ":*IWDT":
+        if not '<' in resp1 and not '>' in resp1:
             raise PumpError('%s: not infusing/withdrawing - infuse or '
                             'withdraw first', self.name)
 
         while True:
             # Read once
-            self.write(self.address + 'VOL\r')
+            self.write('VOL')
             resp1 = self.read(17)
 
-            if resp1[-1] in ":*IWDT":
-                # pump has already come to a halt
+            if not '<' in resp1 and not '>' in resp1:
+                # pump has come to a halt
                 logging.info('%s: target volume reached, stopped',self.name)
                 break
 

@@ -550,6 +550,30 @@ class Microliter(Pump):
         else:
             raise PumpError(f'{self.name}: unknown response: {resp}')
 
+    def waituntiltarget(self):
+        """Wait until the pump has reached its target volume."""
+        logging.info('%s: waiting until target reached',self.name)
+
+        self.write(self.address + 'VOL\r')
+        resp1 = self.read(17)
+
+        if resp1[-1] in ":*IWDT":
+            raise PumpError('%s: not infusing/withdrawing - infuse or '
+                            'withdraw first', self.name)
+
+        while True:
+            # Read once
+            self.write(self.address + 'VOL\r')
+            resp1 = self.read(17)
+
+            if resp1[-1] in ":*IWDT":
+                # pump has already come to a halt
+                logging.info('%s: target volume reached, stopped',self.name)
+                break
+
+            sleep(0.1)
+
+
 class PumpError(Exception):
     pass
 

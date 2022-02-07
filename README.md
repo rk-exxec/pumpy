@@ -2,24 +2,20 @@
 
 Pumpy allows you to control your Harvard syringe pump or Mighty Mini piston pump from your computer over an RS-232 interface.
 
-## pumpy is no longer maintained
-
-Occasionally I receive pull requests and issues but because I don't work in a lab anymore I have no way to test them.
-I also wrote Pumpy when I was a relatively novice Python programmer (there aren't any automated tests for a start) so it needs a lot of work.
-Hence I'm no longer maintaining pumpy.
-
-That said, there's no reason why it shouldn't still work with the pumps below. If it doesn't work, pumpy is MIT licensed so you're free to make and distribute your own changes.
-
+---
+**please note that this is a fork of the original with the purpose of implementing the Harvard Apparatus Microliter OEM Syringe pump**
+---
 ## Supported pumps
 
 * Harvard Pump 11
 * Harvard Pump 11 Plus
 * Harvard PHD2000
 * Mighty Mini piston pump
+* Harvard Microliter OEM
 
 ## Features
 
-* For Harvard Pump 11, Pump 11 Plus, and PHD2000:
+* For Harvard Pump 11, Pump 11 Plus, and PHD2000, ulOEM:
 	* infuse
 	* withdraw
 	* set diameter
@@ -40,7 +36,7 @@ That said, there's no reason why it shouldn't still work with the pumps below. I
 
 ## Install
 
-`pip install pumpy`
+`pip install git+https://github.com/rk-exxec/pumpy.git`
 
 ## Usage
 

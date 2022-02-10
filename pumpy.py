@@ -1,4 +1,5 @@
-from __future__ import print_function 
+from __future__ import print_function
+import threading 
 import serial
 import argparse
 import logging
@@ -48,7 +49,7 @@ class Pump:
     """
     def __init__(self, chain, address=0, name='Pump 11'):
         self.name = name
-        self.serialcon = chain
+        self.serialcon: Chain = chain
         self.address = '{0:02.0f}'.format(address)
         self.diameter = None
         self.flowrate = None
@@ -373,6 +374,12 @@ class Microliter(Pump):
     :param name: optional name for the pump to be used in logging. Default is Pump 11.
     """
 
+    def __init__(self, chain, address=0, name='Pump 11'):
+        super().__init__(chain, address=address, name=name)
+        self._running = False
+        self._timeout = 10
+        self._mutex = threading.Lock()
+
     def write(self,command):
         """ write command to pump
 
@@ -393,17 +400,30 @@ class Microliter(Pump):
         else:
             return response
 
-    def readall(self):
+    def query(self, command, ans_len=-1, wait_ans=True):
+        self._mutex.acquire(True)
+        self.write(command)
+        if ans_len == -1:
+            response = self.readall(wait=wait_ans)
+        else:
+            response = self.read(bytes=ans_len)
+        self._mutex.release()
+        return response
+
+    def readall(self, wait=True):
         """ read complete serial buffer
 
         :returns: bytes read from buffer
         """
-        response = ""
-        while len(response) == 0:
+        cntr = 0
+        sleep(0.1)
+        response = self.serialcon.read_all().decode().strip()
+        while len(response) == 0 and wait and cntr < self._timeout:
             sleep(0.1)
+            cntr += 1
             response = self.serialcon.read_all().decode().strip()
 
-        if len(response) == 0:
+        if len(response) == 0 and wait:
             raise PumpError('%s: no response to command' % self.name)
         else:
             return response
@@ -426,14 +446,15 @@ class Microliter(Pump):
         diam_str = remove_crud(str(diameter))
 
         # Send command   
-        self.write('MMD ' + diam_str)
-        resp = self.readall()
+        #self.write('MMD ' + diam_str)
+        resp = self.query('MMD ' + diam_str)
 
         # Pump replies with address and status (:, < or >)        
         if (resp[-1] in ":<>*IWDT" or "*" in resp):
             # check if diameter has been set correctlry
-            self.write('DIA')
-            resp = self.read(15)
+            # self.write('DIA')
+            # resp = self.read(15)
+            resp = self.query('DIA', ans_len=15)
             returned_diameter = remove_crud(resp[0:9])
             
             # Check diameter was set accurately
@@ -460,15 +481,19 @@ class Microliter(Pump):
         """
         flowrate = remove_crud(str(flowrate))
 
-        self.write('ULM ' + flowrate)
-        resp = self.readall()
-        self.write('ULMW ' + flowrate)
-        resp = self.readall()
+        # self.write('ULM ' + flowrate)
+        # resp = self.readall()
+        # self.write('ULMW ' + flowrate)
+        # resp = self.readall()
+
+        resp = self.query('ULM ' + flowrate)
+        resp = self.query('ULMW ' + flowrate)
         
         if (resp[-1] in ":<>*IWDT" or "*" in resp):
             # Flow rate was sent, check it was set correctly
-            self.write('RAT')
-            resp = self.readall()
+            # self.write('RAT')
+            # resp = self.readall()
+            resp = self.query('RAT')
             returned_flowrate = resp.split(' ')[0]
 
             if float(returned_flowrate) != float(flowrate):
@@ -479,8 +504,9 @@ class Microliter(Pump):
                 self.flowrate = returned_flowrate
                 logging.info('%s: infuse flow rate set to %s uL/min', self.name,
                               self.flowrate)
-            self.write('RATW')
-            resp = self.readall()
+            # self.write('RATW')
+            # resp = self.readall()
+            resp = self.query('RATW')
             returned_flowrate = resp.split(' ')[0]
 
             if float(returned_flowrate) != float(flowrate):
@@ -499,16 +525,18 @@ class Microliter(Pump):
             
     def infuse(self):
         """Start infusing pump."""
-        self.write('RUN')
-        resp = self.readall()      
+        # self.write('RUN')
+        # resp = self.readall()      
+        resp = self.query('RUN')
         if not '>' in resp:
             raise PumpError(f"Pump did not start infuse!: {resp}")  
         logging.info('%s: infusing',self.name)
 
     def withdraw(self):
         """Start withdrawing pump."""
-        self.write('RUNW')
-        resp = self.readall()
+        # self.write('RUNW')
+        # resp = self.readall()
+        resp = self.query('RUNW')
         if not '<' in resp:
             raise PumpError(f"Pump did not start withdraw!: {resp}")
         logging.info('%s: withdrawing',self.name)
@@ -516,27 +544,36 @@ class Microliter(Pump):
     def stop(self):
         """ stop pump movement """
         logging.info("stopping pump")
-        self.write("STP")
-        resp = self.readall()
+        
+        # self.write("STP")
+        # resp = self.readall(wait=False)
+        resp = self.query('STP', wait_ans=False)
         if not resp[-1] in ":*IWDT":
             raise PumpError(f"Pump did not stop: {resp}")
 
     def settargetvolume(self, targetvolume):
         """Set the target volume to infuse or withdraw (microlitres)."""
-        # clear infuse target
-        self.write('CLT')
-        resp = self.readall()
-        self.write('CLTW')
-        resp = self.readall()
-        self.write('CLV')
-        resp = self.readall()
-        self.write('CLVW')
-        resp = self.readall()
-        # set new infuse target
-        self.write('ULT ' + str(targetvolume))
-        resp = self.readall()
-        self.write('ULTW ' + str(targetvolume))
-        resp = self.readall()
+        # # clear infuse target
+        # self.write('CLT')
+        # resp = self.readall()
+        # self.write('CLTW')
+        # resp = self.readall()
+        # self.write('CLV')
+        # resp = self.readall()
+        # self.write('CLVW')
+        # resp = self.readall()
+        # # set new infuse target
+        # self.write('ULT ' + str(targetvolume))
+        # resp = self.readall()
+        # self.write('ULTW ' + str(targetvolume))
+        # resp = self.readall()
+
+        resp = self.query('CLT')
+        resp = self.query('CLTW')
+        resp = self.query('CLV')
+        resp = self.query('CLVW')
+        resp = self.query('ULT ' + str(targetvolume))
+        resp = self.query('ULTW ' + str(targetvolume))
 
         # response should be CRLFXX:, CRLFXX>, CRLFXX< where XX is address
 
@@ -550,25 +587,27 @@ class Microliter(Pump):
     def waituntiltarget(self):
         """Wait until the pump has reached its target volume."""
         logging.info('%s: waiting until target reached',self.name)
+        self._running = True
 
-        self.write('VOL')
-        resp1 = self.readall()
+        # self.write('VOL')
+        # resp1 = self.readall()
+        resp = self.query('VOL')
 
-        if not '<' in resp1 and not '>' in resp1:
+        if not '<' in resp and not '>' in resp:
             raise PumpError('%s: not infusing/withdrawing - infuse or '
                             'withdraw first', self.name)
 
-        while True:
-            # Read once
-            self.write('VOL')
-            resp1 = self.readall()
+        while self._running:
+            resp = self.query('VOL')
 
-            if not '<' in resp1 and not '>' in resp1:
+            if not '<' in resp and not '>' in resp:
                 # pump has come to a halt
-                logging.info('%s: target volume reached, stopped',self.name)
+                
                 break
 
             sleep(0.1)
+
+        logging.info('%s: stopped',self.name)
 
 
 class PumpError(Exception):

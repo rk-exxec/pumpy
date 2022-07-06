@@ -591,22 +591,28 @@ class Microliter(Pump):
 
         # self.write('VOL')
         # resp1 = self.readall()
-        resp = self.query('VOL')
+        try:
+            resp = self.query('VOL')
+        except UnicodeDecodeError:
+            pass
+
 
         if not '<' in resp and not '>' in resp:
             raise PumpError('%s: not infusing/withdrawing - infuse or '
                             'withdraw first', self.name)
 
         while self._running:
-            resp = self.query('VOL')
-
-            if not '<' in resp and not '>' in resp:
+            try:
+                resp = self.query('VOL')
+                if not '<' in resp and not '>' in resp:
                 # pump has come to a halt
                 
                 break
+            except UnicodeDecodeError:
+                pass
 
             sleep(0.1)
-
+        
         logging.info('%s: stopped',self.name)
 
 

@@ -607,7 +607,7 @@ class Microliter(Pump):
                 if not '<' in resp and not '>' in resp:
                 # pump has come to a halt
                 
-                break
+                    break
             except UnicodeDecodeError:
                 pass
 
